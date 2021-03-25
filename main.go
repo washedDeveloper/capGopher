@@ -1,8 +1,10 @@
-package capGopher
+package main
 
 import (
 	"bytes"
-	"fmt"
+	"encoding/json"
+	"io/ioutil"
+	"log"
 	"net/http"
 )
 
@@ -11,15 +13,51 @@ const (
 )
 
 type Solver struct {
-	apiKey string
+	APIKey string
 }
 
-func (s Solver) RecaptchaV2(siteKey, url string) {
-	payload := fmt.Sprintf(`{"clientKey":"%v", {"type": "NoCaptchaProxyless","websiteURL": "%v", "websiteKey": "%v"}}`, s.apiKey, url, siteKey)
-	req, err := http.NewRequest(http.MethodPost, createTaskURL, bytes.NewBuffer(bytes(payload)))
+type NoCaptchaProxylessData struct {
+	Type       string `json:"type"`
+	WebsiteURL string `json:"websiteURL"`
+	WebsiteKey string `json:"websiteKey"`
+}
+
+type NoCaptchaProxylessTask struct {
+	ClientKey string                 `json:"clientKey"`
+	Task      NoCaptchaProxylessData `json:"task"`
+}
+
+func (s Solver) RecaptchaV2(siteKey, url string) (recaptchaResponse string, err error) {
+	payload := NoCaptchaProxylessData{Type: "NoCaptchaTaskProxyless", WebsiteURL: url, WebsiteKey: siteKey}
+	task := NoCaptchaProxylessTask{ClientKey: s.APIKey, Task: payload}
+	body, err := json.Marshal(task)
+	log.Println(string(body))
+	if err != nil {
+		log.Fatalln("Failed to Marshal NoCaptchaProxylessTask")
+		return "", err
+	}
+	resp, err := http.Post(createTaskURL, "application/json", bytes.NewBuffer(body))
+	if err != nil {
+		log.Fatalln("Error occured while using the capmonster api")
+		return "", err
+	}
+	defer resp.Body.Close()
+	// TODO
+	/*
+		Check Body For Errors
+		Probably Refactor A Bit
+		- error types
+		- just better type systems
+		Environment Variables for API Keys or Maybe A Config File
+	*/
+	if err != nil {
+		log.Fatalln("Failed to read body from capmonster api")
+		return "", err
+	}
+	return "", nil
 }
 
 func main() {
-	s := Solver{apiKey: "123"}
-	s.RecaptchaV2("6LccSjEUAAAAANCPhaM2c-WiRxCZ5CzsjR_vd8uX", "https://geo.captcha-delivery.com/captcha/?initialCid=AHrlqAAAAAMAkv70eyPjxu0AR0MUlg==&cid=1P-D1yh04r4UAsGESzpI23QxQto8TExFKVZP5MuzDip~.hXrdUFP0PkMXDcBHivAwG9CGg_6MOMub1Sphqq4mVKg2O7jaca5j4xzl_m6NH&referer=http%3A%2F%2Fwww.footlocker.com%2Fapi%2Fusers%2Fcarts%2Fcurrent%2Fentries&hash=A55FBF4311ED6F1BF9911EB71931D5&t=fe&s=17434")
+	s := Solver{APIKey: "api key here"}
+	s.RecaptchaV2("6Le-wvkSAAAAAPBMRTvw0Q4Muexq9bi0DJwx_mJ-", "https://www.google.com/recaptcha/api2/demo")
 }
