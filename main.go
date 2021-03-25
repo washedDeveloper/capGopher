@@ -27,6 +27,7 @@ type NoCaptchaProxylessTask struct {
 	Task      NoCaptchaProxylessData `json:"task"`
 }
 
+
 func (s Solver) RecaptchaV2(siteKey, url string) (recaptchaResponse string, err error) {
 	payload := NoCaptchaProxylessData{Type: "NoCaptchaTaskProxyless", WebsiteURL: url, WebsiteKey: siteKey}
 	task := NoCaptchaProxylessTask{ClientKey: s.APIKey, Task: payload}
